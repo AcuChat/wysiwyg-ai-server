@@ -167,6 +167,101 @@ exports.openAIGenericChatCompletionSocketStream = async (apiKey, model, messages
     return result;
 }
 
+exports.openAIGenericChatCompletionRestStream = async (apiKey, model, messages, res, temperature = .4, top_p = null, maxRetries = 10) => {
+    console.log('ai.openAIGenericChatCompletionSocketStream model', model, JSON.stringify(messages, null, 4))
+    const request = {
+        url: 'https://api.openai.com/v1/chat/completions',
+        method: 'post',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+        },
+        responseType: 'stream',
+        data: {
+            model,
+            messages,
+            stream: true
+        }
+    }
+
+    //console.log(request); return;
+    if (top_p !== null) request.data.top_p = top_p;
+    if (temperature !== null) request.data.temperature = temperature;
+
+    //console.log(request); return;
+
+    let success = false;
+    let count = 0;
+    let seconds = 3;
+    let result = false;
+
+    while (!success) {
+        try {
+            result = await axios(request);
+            stream = result.data;
+            let countMe = 1;
+            let text = '';
+            stream.on('data', (chunk) => {
+                text += chunk.toString();
+                let loc = text.indexOf("\n\n");
+                while (loc !== -1) {
+                    const info = text.substring(0, loc);
+                    //console.log('info', info);
+                    text = text.substring(loc+2);
+                    loc = text.indexOf("\n\n");
+                    if (info.includes('[DONE]')) return;
+                    if (info.startsWith("data:")) {
+                        const data = JSON.parse(info.replace("data: ", ""));
+                        try {
+                            let nextToken = data.choices[0].delta?.content;
+                            if (nextToken) {
+                                //nextToken = nextToken.replaceAll("\n", "[[[NewLine]]]")
+                                //console.log(`nextToken: [${nextToken}] ${convertString.stringToBytes(nextToken)}`);
+                                
+                                res.write(nextToken);
+                            }
+                        } catch (error) {
+                            console.log(`Error with JSON.parse and ${chunk}.\n${error}`);
+                            res.status(500).send('Streaming error');
+                            
+                        }
+                    }
+                }
+            });
+
+            stream.on('end', () => {
+                console.log('[DONE]');
+                res.end('[[[DONE]]]');
+            });
+            success = true;
+        } catch (err) {
+            console.error("axios err.data", err.response.status, err.response.statusText);
+            ++count;
+            if (count >= maxRetries || (err.response.status >= 400 && err.response.status <= 499) ) {
+                console.log("STATUS 400 EXIT");
+            
+                return {
+                    status: 'error',
+                    number: err.response.status,
+                    message: err.response.statusText,
+                }
+            }
+            seconds *= 2;
+            console.error(`${model} is busy. Sleeping now.`)
+            await sleep(seconds);
+            console.error(`Retrying query for ${model}`);
+        }
+    }
+
+    // const response = {
+    //     status: 'success',
+    //     finishReason: result.data.choices[0].finish_reason,
+    //     content: result.data.choices[0].message.content
+    // }
+
+    // if (debug) console.log(response);
+
+    return result;
+}
 
 
 exports.queryFineTunedOpenAiModel = async (options, query) => {
