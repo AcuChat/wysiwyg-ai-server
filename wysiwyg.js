@@ -44,6 +44,23 @@ app.get('/', (req, res) => {
     res.send('Hello, World!');
 });
 app.post('/ai-stream', (req, res) => statbilityService(req, res, openaiStream.openaiStream));
+app.get('/stream', (req, res) => {
+  // Set the headers to keep the connection open
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  // Simulate a data source that streams data
+  let counter = 0;
+  const interval = setInterval(() => {
+    counter += 1;
+    res.write(`Chunk ${counter}\n`);
+
+    if (counter >= 5) {
+      clearInterval(interval);
+      res.end();
+    }
+  }, 1000);
+});
 
 /**
  * Launch Server

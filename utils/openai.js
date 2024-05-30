@@ -168,6 +168,9 @@ exports.openAIGenericChatCompletionSocketStream = async (apiKey, model, messages
 }
 
 exports.openAIGenericChatCompletionRestStream = async (apiKey, model, messages, res, temperature = .4, top_p = null, maxRetries = 10) => {
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Transfer-Encoding', 'chunked');
+  
     console.log('ai.openAIGenericChatCompletionSocketStream model', model, JSON.stringify(messages, null, 4))
     const request = {
         url: 'https://api.openai.com/v1/chat/completions',
@@ -230,7 +233,7 @@ exports.openAIGenericChatCompletionRestStream = async (apiKey, model, messages, 
 
             stream.on('end', () => {
                 console.log('[DONE]');
-                res.end('[[[DONE]]]');
+                res.end();
             });
             success = true;
         } catch (err) {

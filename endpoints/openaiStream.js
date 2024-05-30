@@ -2,7 +2,7 @@ require('dotenv').config();
 const { OPEN_AI_KEY } = process.env;
 const openai = require('../utils/openai');
 
-const openaiStream = async (req, res) => {
+exports.openaiStream = async (req, res) => {
     let { query, model, service } = req.body;
     if (!query) return res.status(400).json('bad command');
     if (!service) service = "You are a helpful assistant.";
