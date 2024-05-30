@@ -9,6 +9,10 @@ const https = require('https');
 const cors = require('cors');
 const fs = require('fs');
 
+/**
+ * Endpoint functions
+ */
+const openaiStream = require('./endpoints/openaiStream');
 
 /**
  * Server Configuration
@@ -39,6 +43,7 @@ const statbilityService = async (req, res, endpoint) => {
 app.get('/', (req, res) => {
     res.send('Hello, World!');
 });
+app.post('/ai-stream', (req, res) => statbilityService(req, res, openaiStream.openaiStream));
 
 /**
  * Launch Server
