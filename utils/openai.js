@@ -233,7 +233,7 @@ exports.openAIGenericChatCompletionRestStream = async (apiKey, model, messages, 
 
             stream.on('end', () => {
                 console.log('[DONE]');
-                res.end();
+                res.end('[[DONE]]');
             });
             success = true;
         } catch (err) {
